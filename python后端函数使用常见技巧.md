@@ -16,6 +16,14 @@ a = 'http://www.baidu.com'
 b = 'test'
 c = f'{a}/{b}'
 ```
+> 这也支持一些复杂的计算，如下
+```
+a = 123.123456
+b = f'{round(a,2)}元'
+print(b)
+```
+> 通过以上的操作可以快速将a保留小数点后两位输出带价格的字符串
+
 
 ### 3.根据当前siteuser_id获取该用户所有信息
 > 接口：post/psiteuser/get_siteuser_data
@@ -101,7 +109,7 @@ async def test11(event, context):
 > 需要注意的是，这里的entity变量并不能像以往那样通过async_first获取第一个对象，也不能通过values()获取其值，因此我特意将得到的结果一个一个存储至数组中，并返回这个数组。
 > 实际上这种查询条件的应用场景应该是比较少的，但是知识这种东西，只能说多多益善。
 
-### 7.有时我们需要将query_set转化为列表返回
+### 7.将query_set转化为列表返回
 
 > 如上文的情况，这个entity虽然可以遍历，但却不是数组，因此我们可以通过下文的语法糖完成
 
@@ -130,3 +138,36 @@ entity = order_repo.count()
 ```
 > 上面这个方法将返回一个数量。
 > 与之对应的还有sum、max、min、avg等，功能不言而喻。
+
+### 10.推送微信消息
+> 通过认证的微信公众号，可以在公众号管理页面设置模板消息。模板消息可以理解为一个一个的表单，表单数据中的key不变，而value可以动态赋值。首先应该将需要发送的若干种信息，转化为若干个消息模板。请求发送模板消息时，还有一些例如行业信息等参数，具体可以参考微信官方的讲解内容https://developers.weixin.qq.com/doc/offiaccount/Message_Management/Template_Message_Interface.html
+> 在担路后端调用发送模板消息的接口示例如下
+```python
+python
+@app.register_func()
+async def func_name(event, context):
+    # 以下为调用例子
+    params = {
+        'company_id': 500, # 当前公司的id
+        'industry_name': 'IT科技-互联网|电子商务', # 行业的第一个选项 + '-' 行业第二个选项 这个是模板所属的行业
+        'template_id': "TM00002", # 模板的id
+        'data': {
+            "touser": "wqeqrqwrhiuryierr", # appuser的openid
+            "miniprogram": { # 如果有小程序的话
+                "appid": 'wx1asdasdasd',
+                "pagepath": 'home/index',
+            },
+            "url": 'ww.baidm.com', # 网页地址
+            "topcolor": '#ffff', hex 格式的颜色, 标题颜色
+            "data": { # 具体的内容
+                "keyword1": {
+                    "value": "微信影城影票",
+                    "color": '#ffff' # hex 格式的颜色,
+                },
+            }
+        },
+    }
+    await context.call("post/wechattemplatecode/send_wechat_template_message", params)
+```
+> 和微信官方的文档不同的时，在这个示例中我们有看到带有access_token的请求过程，我的猜测是，后台调用了company_id对应的商家事先提交的许可证。
+> 结合实际使用情况，例如交易市场中，如果订单状态发生变化，比如卖家接单，此阶段应该通过公众号发送给卖家相关信息。调用一个比如叫做send_massage的后端函数，传入的参数可以是与订单相关的所有信息，以及接受信息一方用户的open_id。将信息按照模板传入字典数据，最后发起请求。
