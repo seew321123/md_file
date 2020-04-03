@@ -209,3 +209,64 @@ async def func_name(event, context):
 > ```
 >
 > 当然在后端函数，from_dict()方法中，需要多一个参数fill_default=true
+
+### 15.前端对象数组针对某个属性排序
+
+> 例如地理位置场景，每个区域对于用户的distance属性各有不同，如果需要根据这个属性对整个数组重新排序，则可以在前端通过如下方式,执行代码
+>
+> ```javascript
+> area.sort((a,b)=>{return a.distance - b.distance})
+> ```
+>
+> 当相减时，如果结果大于零，则将会把小的对象放在更前面，如果小于零，则符合条件不改变。最后能够根据distance属性将整个数组重新由小到大排序。
+
+### 16.mutation外部修改状态
+
+> 部分场景需要通过执行代码的方式修改状态变量。如果直接执行代码，会报错。因此比较正规的方式，是先声明局部变量，通过深度拷贝的方式将状态的值赋值给局部变量。然后局部变量执行代码，最后将局部变量的值赋值给状态变量即可。
+
+### 17.监听用户注册事件参数
+
+> 当用户注册完成后，你希望能够马上执行一些操作，例如在自己的user表中增加一行数据，初始化信息。可以通过如下方式实现。
+>
+> ```python
+> @app.register_event()
+> async def on_siteuser_create(event, context):
+>     user_repo = context.get_rows_repo('user')
+>     user_data = {
+>         'siteuser_id': event['siteuser'].id,
+>         'is_position': False,
+>         'level': '一级',
+>         'discount': '110',
+>     }
+>     user_entity = await user_repo.async_from_dict(user_data, fill_default=True)
+>     user_entity = await user_repo.async_save(user_entity)
+>     return user_entity
+> ```
+>
+> 其中event['siteuser']是这个系统级事件的参数，通过获取其id属性可以直接将其赋值给字典中的属性。需要注意的是这里的id总是很容易以这种形式发生错误：event['siteuser'] ['id']
+
+### 18.充值功能实现
+
+> 虽然绝大多数情况客户不会有这个要求，但不可避免的我还是遇到了。
+>
+> 首先充值以后的余额是保存在siteuser分销余额当中。充值余额的页面可以类似于各大移动运营商的充值话费的页面布局。用户发起充值以后，通过后台接口快速提交一个订单，其中的参数product_name可以指定为"余额充值"，price可以是其充值的金额。其他的就不细说了。根据提交的订单返回_pay_url跳转到指定页面让用户完成付款，最后在后端云函数中声明系统事件on_order_pay.
+>
+> 在该事件中的order参数中的几个数据提取出来，调用后端接口充值该siteuser的分销余额（因为历史原因将用户的余额储存在这个位置）
+>
+> ```python
+> @app.register_event()
+> async def on_order_pay(event, context):
+>     # 如果是余额充值类订单支付，则直接在用户的分销余额中增加指定的余额
+>     if event['order']['product_name'] == '余额充值':
+>         siteuser_id = event['order']['siteuser_id']
+>         money = event['order']['price'] * 100
+>         data = {
+>             'siteuser_id': siteuser_id,
+>             'money': money,
+>             'remark': f'用户余额充值{money}(单位：分)'
+>         }
+>         a = await context.async_call('post/pshopwalletitem_admin/do_pshop_recharge', data, as_admin=True)
+>         return dict(status='success', msg='余额充值成功！', object=a)
+> ```
+>
+> 
