@@ -183,7 +183,7 @@ async def func_name(event, context):
 > 某种场景你希望从一个已经存在的数组中，查询一个标识值已知的条目，例如你的items状态中，你希望能查到id为101的条目信息。你可以在前端执行如下代码
 >
 > ```javascript
-> a = items.find((item)=>item.id == 101)
+> a = items.find((item)=>{return{item.id == 101})
 > ```
 >
 > 以上方法比较高效。
