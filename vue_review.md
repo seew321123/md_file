@@ -71,5 +71,87 @@ var app = new Vue({
 
 也可以通过在子组件中的input输入框通过v-model动态绑定内部的data值，然后出发input事件以后，发起一个$emit（）事件，将动态绑定的data作为参数传入父组件，而出发的$emit实际上可以是一个input事件，也就自动将子组件中的数据直接动态绑定到父组件上了。
 
-#### 3.非父子关系组件传递信息
+#### 3.通过子组件索引访问子组件信息
 
+有些情景需要在主组件中主动访问子组件的数据，如果实现在子组件中配置其子组件索引则可以解决这个问题。代码如下
+
+```javascript
+<div id="app">
+			<div @click="get_msg" >一个按钮</div>
+			<my-niubi ref="comA"></my-niubi>
+		</div>
+		<script>
+			Vue.component('my-niubi', {
+				props:['value'],
+				template:`
+					<div>子组件</div>`,
+				data:function(){
+					return {
+						msg: "从子组件中获取的信息"
+					}
+				},
+			})
+			var app = new Vue({
+			  el: '#app',
+			  data:{
+				  total: 0
+			  },
+			  methods:{
+				  get_msg:function(){
+					  console.log("打印子组件的信息",this.$refs.comA.msg)
+				  }
+			  }
+			})
+		</script>
+```
+
+其中需要注意一点，访问子组件索引时，this.$refs ，这个s很容易忘记。
+
+#### 4.slot插槽
+
+在子组件模板中，可以增加一对<slot></slot>插槽标签，这样在父组件使用子组件时，可以在子组件标签中填入内容，当没有填入任何内容时，插槽内的默认内容将会显示。
+
+```javascript
+<div id="app">
+			<my-niubi ref="comA">替换默认文本的内容</my-niubi>
+		</div>
+		<script>
+			Vue.component('my-niubi', {
+				props:['value'],
+				template:`
+					<div>
+						<slot>
+							<p>默认文本</p>
+						</slot>
+					</div>`,
+			})
+			var app = new Vue({
+			  el: '#app',
+			})
+		</script>
+```
+
+#### 5.递归组件
+
+你可以声明一个组件，并在组件的模板中调用自己，通过这种操作实现组件的递归。但前提是你必须要有限制条件，否则会产生类似于套娃的效应导致报错。如下
+
+```javascript
+<div id="app">
+    <my-com :count="1"></my-com>
+</div>
+<script>
+	Vue.component('my-com',{
+        name:"my-com",
+        props:['count'],
+        template:`<div><button>
+		<my-com 
+		:count="count + 1"
+		v-if="count < 3"></my-com></div>`
+    })
+	var app = New Vue({
+        el: "#app"
+    })
+</script>
+```
+
+通过属性count的传递值以及if的限制，让这个组件只会被递归2次。
