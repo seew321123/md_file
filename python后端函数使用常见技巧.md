@@ -270,3 +270,202 @@ async def func_name(event, context):
 > ```
 >
 > 
+
+### 19.判断查询集是否为空
+
+> 有些场景需要判断查询集是否为空，不为空才执行一系列动作。因此查询后可以通过exists()方法进行如下代码判断
+>
+> ```python
+> async def test3(event, context):
+>     user_repo = context.get_rows_repo('user')
+>     user_entity = user_repo.active().filter(data__siteuser_id=123)
+>     if user_entity.exists():
+>         return '有'
+>     else:
+>         return '无'
+> ```
+>
+> 
+
+### 20.获取company的entity对象
+
+> 安全性高的接口，调用时可能需要参数as_admin_company参数及其对应的entity，例如处理分销余额、确认、取消订单等场景。因此需要获取到company的entity对象。代码如下
+>
+> ```python
+> from shared.company.repos import CompanyRepo
+> company_id = context.get_company_id()
+> company = await CompanyRepo().async_get(id=company_id)
+> ```
+>
+> 
+
+### 21.滑动功能的实现
+
+> 滑动功能主要监听两个事件。
+>
+> 1.触摸移动
+>
+> 2.触摸结束
+>
+> 通常购物车条目时一个数组，需要给每个条目增加两个属性，
+>
+> 1.class(用于动态绑定每个子项的类，通过改变类从而改变样式实现滑动)
+>
+> 2.slide(切换滑动状态显示删除按钮)
+>
+> 在触摸移动时，设置开始位置横坐标。对比当前位置位移差超过一个固定的数值则改变该条目的类。
+>
+> 当触摸结束时，将开始位置的横坐标清空。
+>
+> 但滑动的容器应该是一个绝对容器，且应该放在一个相对容器当中。
+>
+> ```javascript
+> console.log('exec', event)
+> let clientX
+> if (dw.platform == 'dwapp') {
+>   clientX = event.data.touches[0].clientX
+> } 
+> let moveX = clientX - startX
+> if (!start) {
+>   startX = clientX
+>   start = true
+> } else {
+>   // trigger
+>   if (moveX < -60) {
+>     console.log(' move left')
+>     return true
+>   }
+> }
+> ```
+>
+> 
+
+### 21.常量访问循环条目
+
+> bagForItem
+
+### 22.自定义字符串模板
+
+> 有些场景需要使用一些具有功能性的原子组件，例如价格格式化，限制长度字符串等等。但最终的需求可能在此基础上还要在前后增加简单的字符串。因此最简单的方法就是克隆你需要的原子组件，在其中wxss文件中，首先找到该组件对应的类名，然后如下执行
+>
+> ```css
+> .youClassName::before{
+>     context:"your_content"
+> }
+> 
+> .youClassName::after{
+>     context:"your_content"
+> }
+> ```
+>
+> 
+
+### 23.es6对象重构赋值
+
+> 对象赋值快捷方式。代码如下
+>
+> ```javascript
+> { a } = {a:1,b:2}
+> console.log(a)
+> //打印结果为：1
+> c = "helloworld"
+> console.log({ c })
+> //打印结果：{c:"helloworld"}
+> 
+> ```
+
+### 24.getProps()不支持循环
+
+> 因为组件在循环容器中不支持getProps()获取所有属性，因此，因此在模板中的监听的方法触发后传入的context参数，通常在wjs层中触发emit事件时，会将这个context以字典的形式带出
+>
+> ```javascript
+> import { dw } from 'dstore/papp'
+> 
+> export default {
+>   data: {
+>     //
+>   },
+>   methods: {
+>     updateField (arg1, arg2) {
+>       const context = dw.platform === 'web' ? arg1 : arg1.target.dataset.bindValue
+>       let value = dw.platform === 'web' ? arg2 : arg1.detail.value
+>       if (context.type === 'digit') {
+>         value = parseInt(value)
+>       } 
+>       dw.emit('input', value, { context }) // 这里的 context 能够被事件接收方通过 event.context 获取到
+>     }
+>   }
+> }
+> ```
+
+### 25.小程序模板中属性的意义
+
+> 首先看一下常规小程序组件的模板中有哪些属性，代码如下
+>
+> ```html
+> <wx-view>
+>     <wx-input 
+>         class="b-input"
+>         :value="context.value"
+>         dw-event="bind:input:updateField"
+>         data-bind-value="context"
+>         @update:value="updateField(context, $event)"
+>     ></wx-input>
+> </wx-view>
+> ```
+>
+> 1. value用于绑定初始化表单的数据，如果不绑定该属性，那么在初始化阶段表单将无法获得事先绑定传递的状态数据或者其他数据。当编辑其内容时，依然可以正常使用。
+> 2. update:value,这是vue用于监听更新value事件绑定的属性，每当表单的value更新时，会触发该事件调用wjs中声明的method.其中需要注意的是，context,$event这两个参数都有很重要的意义。如标题24所述，循环容器中的组件无法获得getProps()中应有的组件属性。为此，每当事件触发调用方法时，都最好将完整的context做为参数传递给逻辑层。当逻辑层获取这个参数时，就可以大有一番作为。想象一个场景，当你循环一个数组，展示了很多条目，每个条目都有一个按钮。当你点击按钮时，需要能够分辨究竟点击了哪一个按钮。而实现传递过来的context则很好的解决了这个问题，其中的eventData属性可以帮你分辨循环条目。而第二个参数$event则是当前正在编辑的这个表单中的事件数据。当你输入"helloworld"时，$event就是该值，而此使的context仍然是改变之前的那个context，直至方法中的emit触发后，相关的值才会发生改变。
+> 3. dw-event="bind:input:updateField"，该属性为了兼容小程序对于input事件的监听
+> 4. data-bind-value="context"，该属性为了兼容小程序，触发事件时将context作为参数传递给wjs端。
+
+### 26.巧用localStorage
+
+> 想象一个场景，当一个页面存在广告信息需要让30分钟内没看过广告的用户看一次广告。或许你可以在用户表中增加一个字段，这个字段代表用户上一次看广告的时间。每次进入页面都对比时间判断用户是否需要看广告。但这样查表直接影响了app的运行速度。因此可以使用localStorage对象。每次进入页面都获取item，没看过广告的用户，对应的item字段为空，就执行看广告的动作。当30分钟内该用户再次进入该页面时，获取item对比时间，符合条件则不执行看广告的动作，避免了查表，提高了效率。代码如下
+>
+> ```javascript
+> //进入页面后执行如下代码
+> result = localStorage.getItem("ad_time")
+> //获取当前时间与1970年相差的毫秒数赋值给now变量
+> let now = Date.now()
+> if(result == null){
+>     localStorage.setItem("ad_time",now)
+>     console.log("show ad")
+> }
+> else{
+>     if((now - result) < 1800000){
+>         localStorage.setItem("ad_time",now)
+>         console.log("show ad")
+>     }
+> }
+> ```
+>
+> 
+
+### 27.前端数据映射
+
+> 订单状态数据内容通常为英文，为了良好展示为中文需要将其进行映射。代码如下
+>
+> ```javascript
+> map = (state)=>{
+>     const _map = {
+> 	  'withdraw':'提现',
+>   	  'income':'进账',
+>   	  'sell_back':'撤销买入',
+>   	  'error_back':'订单过期但是支付回撤',
+>       'pay':'支付订单',
+>       'admin': '后台解冻',
+>       'reversal': '冻结',
+>       'recharge':'充值',
+>       'reward_income':'悬赏收入',
+>       'reward_expense':'悬赏支出',
+>       'reward_withdraw':'悬赏提现',
+>       'level_package':'购买升级包',
+> 	}
+>    return _map(state)
+> }
+> map("admin")
+> //"后台解冻"
+> ```
+>
+> 创建一个对象，返回对象中的指定字段，这个字段为传入的参数
