@@ -273,16 +273,24 @@ async def func_name(event, context):
 
 ### 19.判断查询集是否为空
 
-> 有些场景需要判断查询集是否为空，不为空才执行一系列动作。因此查询后可以通过exists()方法进行如下代码判断
+> 有些场景需要判断查询集是否为空，不为空才执行一系列动作。因此查询后可以通过exists()方法进行如下代码判断,如果查询结果为entity，则可以直接通过if else判断是否为空
 >
 > ```python
 > async def test3(event, context):
->     user_repo = context.get_rows_repo('user')
->     user_entity = user_repo.active().filter(data__siteuser_id=123)
->     if user_entity.exists():
->         return '有'
->     else:
->         return '无'
+>  user_repo = context.get_rows_repo('user')
+>  user_entity = user_repo.active().filter(data__siteuser_id=123)
+>  if user_entity.exists():
+>      return '有'
+>  else:
+>      return '无'
+> 
+> async def test4(event, context):
+>  user_repo = context.get_rows_repo('user')
+>  user_entity = await user_repo.active().filter(data__siteuser_id=123).async_first()
+>  if user_entity():
+>      return '有'
+>  else:
+>      return '无'
 > ```
 >
 > 
@@ -469,3 +477,56 @@ async def func_name(event, context):
 > ```
 >
 > 创建一个对象，返回对象中的指定字段，这个字段为传入的参数
+
+### 28.小程序wxss样式不要用px
+
+> 在wxss文件中使用pm作为单位，在web端会转化为rem,在小程序将转化为rpx.
+
+### 29.避免在大量循环中查询数据
+
+> 在数据量比较大的场景中，如果在循环块查询数据表可能会导致查询次数过多数据量过大导致任务超时失败。比如有一张user表，有100个用户，你需要遍历100个用户的查询其对应的age属性。这种情况下可以考虑一次查询获取列表数据，然后在for循环中找到对应的数据即可。例子如下：
+>
+> ```python
+> user_repo = context.get_rows_repo('user')
+> user_entities = user_repo.active().filter(data__field='your_field').to_dict_list()
+> # some code
+> for item in user_entities:
+>     if item['data']['siteuser_id'] == your_object['data']['siteuser_id']:
+>         # then you can use item to do something 
+> ```
+
+### 30.系统表的分组聚合
+
+> 在普通数据表中的聚合查询示例如下：
+>
+> ```python
+> # 查询不同名称的数据并分别计数
+> result2 = (
+>     repo
+>     .annotate(name='data__name')
+>     .group_by('name', sum=repo.Sum('data__price__float'))
+> )
+> ```
+>
+> 以上内容根据name字段分组，并且将price字段求和。需要注意的是，这里的字段名称以及双下划线标识要非常小心。聚合中的形参为字段名称，实参需要带有data及双下划线的样式,而分组字段却又只是字段名称，而最后需要求和的字段price还要写为上文的形式，稍有不注意就很容易搞错。
+>
+> 而系统表的分组聚合查询则需要通过以下代码实现
+>
+> ```python
+> order_map = list(
+>         OrderRepo()
+>         .filter(
+>             company_id=company_id,
+>             papp_slug="product",
+>             namespace="default",
+>             states="success",
+>             created__gte=start,
+>             created__lte=end,
+>         )
+>         ._queryset.values("siteuser_id")
+>         .order_by("siteuser_id")
+>         .annotate(sum=Sum("price"))
+>     )
+> ```
+>
+> 
