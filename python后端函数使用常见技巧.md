@@ -528,5 +528,173 @@ async def func_name(event, context):
 >         .annotate(sum=Sum("price"))
 >     )
 > ```
+
+### 31.查询字段为空
+
+> 有些场景需要查询没有父级分销商的siteuser,因此根据pshop_parent_id为空作为条件筛选用户。查询条件如下即可：
+>
+> ```python
+> entity = repo.active().filter(pshop_parent_id=None)
+> ```
 >
 > 
+
+### 32.通过查询系统用户表获取分销关系树
+
+> ```python
+> @app.register_func()
+> async def get_full_tree(event, context):
+>     # 首先找到顶级分销商，输出为列表top_list
+>     company_id = await context.async_get_company_id()
+>     top_siteuser_entitys = await SiteUserRepo().filter(object_id=company_id, pshop_parent_id=None).async_to_dict_list()
+>     top_list = []
+>     for item in top_siteuser_entitys:
+>         a = {
+>             'id': item['id'],
+>             'children': [],
+>         }
+>         top_list.append(a)
+>     # 为了减少不必要的数据查询次数，首先一次性找到所有用户id与pshop_parent_id对应关系，存放在列表my_map中
+>     my_map = []
+>     map_entitys = await SiteUserRepo().filter(object_id=company_id).async_to_dict_list()
+>     for item in map_entitys:
+>         my_object = {
+>             'id': item['id'],
+>             'pshop_parent_id': item['pshop_parent_id']
+>         }
+>         my_map.append(my_object)
+>     full_tree = []
+>     for item in top_list:
+>         result = await find_children(event, context, item, my_map)
+>         if len(result['children']) > 0:
+>             full_tree.append(result)
+>     return full_tree
+> 
+> 
+> @app.register_func()
+> async def find_children(event, context, my_dict, my_map):
+>     result = {
+>         'id': my_dict['id'],
+>         'children': []
+>     }
+>     # 根据获取的映射关系，查找是否有对应的children,放入children这个临时变量
+>     children = []
+>     for item in my_map:
+>         if item['pshop_parent_id'] == my_dict['id']:
+>             param_dict = {
+>                 'id': item['id'],
+>                 'children': []
+>             }
+>             children.append(param_dict)
+>     if len(children) > 0:
+>         for item in children:
+>             result['children'].append(await find_children(event, context, item, my_map))
+>         return result
+>     else:
+>         return result
+>     
+>     
+> async def func(event, context):
+>     ctx = context
+>     from shared.account.repos import StaffRepo, StaffPermissionRepo
+>     taiji = StaffRepo.Model.objects.get(id=107)
+>     permission = StaffPermissionRepo.Model.objects.get(
+>         field='dissue.read_list_all'
+>     )
+>     taiji.staff_permission.add(permission)
+>     return context.return_success()
+> ```
+>
+> 思路如下：
+>
+> 1. 为了避免重复查询系统表，在函数开头完整的查询表中所有数据，将其中的id以及phop_parent_id映射关系存储在一个dict_list中。
+> 2. 根据实现获取的顶级分销商dict_list,通过循环条目依次调用find_children函数。
+> 3. find_children函数接收一个字典，该字典只有两个字段，分别是id以及children.
+> 4. find_children函数最终需要根据接受的字典而返回一个字典。因此一开始可以直接声明一个用来返回的字典。
+> 5. find_children接受的另一个参数则是分销关系map列表。遍历map列表查找是否有与参数字典id对应的pshop_parent_id，如果有则代表该用户有下级用户。存储到临时变量children中。通过判断children的长度分析该用户是否有下级用户。如果没有则直接返回开始声明的那个字典。如果有，则遍历children，循环中调用自己并把结果插入到实现声明的字典中的列表字段。最终返回这个字典。
+> 6. 这种递归动作的核心在于你能否想象到最后一次递归的动作应该有什么要的结果。返回的值如何控制，列表字典嵌套的情况下如何通过for循环构造字典或者列表。
+
+### 33.快速格式化日期时间
+
+> 过去常常使用以下方式格式化时间日期
+>
+> ```python
+> date1 = '2019-06-05' #string格式
+> date1 = datetime.strptime(date1, "%Y-%m-%d") #首先变成datetime格式
+> date2 = date1+ datetime.timedelta(days=-10))# 然后就可以进行计算了，得到datetime格式
+> date3 = date2.strftime("%Y-%m-%d") # 变成string格式
+> ```
+>
+> 有些场景仅仅只是需要获取当前时间，或者当前时间的简单加减法。可以考虑使用isoformat快速格式化时间日期使得该数据类型能够被系统所接受。
+>
+> ```python
+> import datetime()
+> now = datetime.datetime.now()
+> data = {
+>     'time': now.isoformat()
+> }
+> # then you can save this data to your own dataset
+> ```
+
+### 34.事务装饰器
+
+> 某些一连串的操作动作需要保持一致性，例如某个订单完成，首先改用户余额，然后改产品数量，然后改订单状态。可能修改产品数量的时候发现小于0报错返回。可是用户余额已经修改了，因此需要将整个动作放在一个事务装饰器下，保证操作的统一性，要么一起执行要么一起不执行。在函数的顶部增加一个如下的装饰器即可：
+>
+> ```python
+> @app.async_transaction()
+> async def your_function(event, context) 
+> ```
+>
+> 但有一个问题，如何判定步骤执行失败，如果只是返回status=error显然不算失败，因此为了抛出一个错误，往往需要手动操作如下：
+>
+> ```python
+> if result['status'] == 'error':
+> 	raise Exception("状态错误")
+> ```
+
+### 35.获取用户siteuser_entity
+
+> 通常我之前的习惯是直接获取siteuser_id，但是这样的操作如果需要用户其他的信息依然很麻烦。因此直接获取siteuser_entity即可。所有数据都能够继而得到。
+>
+> ```python
+> siteuser_entity = await context.async_get_siteuser_entity()
+> ```
+
+### 36.重构代码由获取配置信息开始
+
+> 有时配置表中的信息有很多，需要获取配置信息的场景也很多。可是每次只是需要获取到配置表中的一个字段。这种情况可以考虑新建一个setting文件，在该文件中实现一个普通函数，专门用于获取配置表信息。每个需要获取配置信息的场景中都import setting中的这个函数即可。
+>
+> ```python
+> # my_setting文件中
+> async def get_config(context, key):
+>     repo = context.get_rows_repo('config')
+>     entity = await repo.active().async_first()
+>     if not entity:
+>         return None
+>     data = entity.data[key]
+>     return data
+> ```
+>
+> 在你需要获取配置信息的场景中，如下操作
+>
+> ```python
+> from .my_setting import get_config
+> your_data = await get_config(context, your_key)
+> ```
+
+### 37.获取字典中的字段设置默认值
+
+> 假设有一个字典如下所示
+>
+> ```python
+> dict = {
+> 	'id': 1,
+> 	'name': 'jerry'
+> }
+> ```
+>
+> 获取name可以通过另一种方法get(),从而当有可能不存在name字段时，可以为他准备一个默认值：
+>
+> ```python
+> name = dict.get('name',tom)
+> ```
