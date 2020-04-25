@@ -698,3 +698,23 @@ async def func_name(event, context):
 > ```python
 > name = dict.get('name',tom)
 > ```
+
+### 38.通过schema数据校验
+
+> 排除一些复杂的数据校验场景需要在前端通过正则表达式判断内容，为了友好的展示后端云函数所接收的参数以及描述性内容，建议使用SCHEMA参数数据校验具体实现方式如下
+>```python
+> YOUR_SCHEMA = {
+>   'num':  app.value_object.Num(default=0, description='测试数字'),
+>   'str': app.value_object.String(required=True,default='test', description='测试数字'),
+> }
+> @app,register_func(post_sechema=YOUR_SCHEMA)
+> async def test(event, context):
+>   '''
+>   用于检测云函数
+>
+>   '''
+>   data = app.value_object.Value.parse_data(event, YOUR_SCHEMA)
+>   context.log(data)
+>   return data
+>```
+> 当传入的参数不符合要求标准，函数将带错误类型返回。
