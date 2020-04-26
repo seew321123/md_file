@@ -741,3 +741,65 @@ async def func_name(event, context):
 > return_dict = {**your_dict, 'key1':'value1', 'key2':'value2'}
 > return return_dict
 > ```
+>
+### 41.带参数调试云函数
+> 部分云函数接收参数，如果前端传入参数的情况下，又想调试该函数的运转情况，可以通过DebugUsecase实现
+> ```python
+> from app.usecases import DebugUsecase as D
+> @app.register_func()
+> @D.shim({
+>   'amount': 1,
+>   'number1': 2
+> })
+> async def your_function(event, context):
+> ```
+> 当系统检测到参数event中的__is_debug为true时，将event中的参数替换为shim方法中的参数，这样就可以快乐的带参数调试而不用修改那糟糕的代码了。
+>
+### 42.python类似与js中的test正则表达式判断
+> ```python
+> @app.register_func()
+> async def test(event, context):
+>   # 第一个表达式匹配正整数
+>   pattern1 = r'^[1-9]\d*$'
+>   # 第二个表达式匹配0.开头的两位小数
+>   pattern2 = r'^0\.\d{1,2}$'
+>   # 第三个表达式匹配正数开头的两位小数
+>   pattern3 = r'^[1-9]\d*\.\d{1,2}$'
+>   my_str = '0.1'
+>   res1 = re.match(pattern1, my_str)
+>   res2 = re.match(pattern2, my_str)
+>   res3 = re.match(pattern3, my_str)
+>   if res1 or res2 or res3:
+>       return 'yes'
+>   else:
+>       return 'no'
+> ```
+> 以上判断过程主要是为了检测一些用户即可以输入正数又可以输入1到2位小数的场景。前端的判断已经有例子了，通过python可以这样判断，仅供参考。
+>
+### 43.js端判断用户浏览器类型
+> 涉及到现金操作，如果在微信网页浏览器中无法使用支付宝提现或者支付功能，因此需要提前判断当前用户处于什么浏览器访问的状态。
+> ```javascript
+> var tools = {
+>  // 微信
+>  is_wxBrowser: function () {
+>    return /micromessenger/.test(navigator.userAgent.toLowerCase());
+>  },
+>  // qq
+>  is_QQBrowser: function () {
+>    return navigator.userAgent.toLowerCase().match(/QQ/i) == 'qq'
+>  },
+>  // 微博
+>  is_wbBrowser: function () {
+>    return navigator.userAgent.toLowerCase().match(/WeiBo/i) == "weibo"
+>  },
+>  is_iOS: function () {
+>    return /(iPhone|iPad|iPod|iOS)/i.test(navigator.userAgent);
+>  },
+>  is_android: function () {
+>    return /android/i.test(navigator.userAgent);
+>  },
+>};
+> ```
+>
+### 44.前端接收用户输入数字的判断流程
+> 为了简洁有效的判断用户输入的操作数字（用于充值或者提现的数字）是否有效。在前端
