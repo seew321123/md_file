@@ -821,3 +821,36 @@ async def func_name(event, context):
 > list = [i['key2'] for i in map_list if i['key1']==your_key1]
 > value = list[0]
 > ```
+
+### 48.python django缓存cache
+
+> 对于一些更新较为不频繁的数据，如果每次进入页面就查询这些数据实际上是对数据库资源的一种浪费，因此这类数据可以通过缓存来解决。
+>
+> ```python
+> from django.core.cache import cache
+> import app
+> 
+> 
+> @app.register_func()
+> async def test_cache(event, context):
+>     try:
+>         res = cache.get(f'coco-test', [])
+>         if res:
+>             context.log("获取了缓存")
+>             context.log(res)
+>             return res
+>     except Exception:
+>         pass
+>     store_repo = context.get_rows_repo('store')
+>     res = await store_repo.active().async_to_dict_list()
+>     context.log("并没有获取缓存，查询了数据库")
+>     try:
+>         cache.set(f'coco-test', res, 60 * 5)
+>     except Exception:
+>         pass
+>     return res
+> ```
+>
+> 在查询数据的函数中，首先尝试获取缓存，如果没有缓存能够利用，则将空列表赋值给res,判断res如果不是空列表则直接返回其值给前端。
+>
+> 如果res为空，那么查询数据库后，设置缓存，第三个参数为缓存过期事件，单位为秒。
