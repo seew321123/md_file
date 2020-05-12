@@ -834,7 +834,7 @@ async def func_name(event, context):
 > @app.register_func()
 > async def test_cache(event, context):
 >     try:
->         res = cache.get(f'coco-test', [])
+>         res = cache.get(f'coco-test')
 >         if res:
 >             context.log("获取了缓存")
 >             context.log(res)
@@ -851,6 +851,56 @@ async def func_name(event, context):
 >     return res
 > ```
 >
-> 在查询数据的函数中，首先尝试获取缓存，如果没有缓存能够利用，则将空列表赋值给res,判断res如果不是空列表则直接返回其值给前端。
+> 在查询数据的函数中，首先尝试获取缓存，如果没有缓存能够利用将返回None,判断res如果不是空则直接返回其值给前端。
 >
 > 如果res为空，那么查询数据库后，设置缓存，第三个参数为缓存过期事件，单位为秒。
+
+### 49.js端循环数组获取索引以及值
+
+> 循环中获取索引通过以下方式
+>
+> ```javascript
+> var a = [1,2,3,4]
+> for(var index in a){
+> 	console(index)
+> }
+> ```
+>
+> 通过in获得索引
+>
+> 循环中获取元素通过以下方式
+>
+> ```javascript
+> var a = [1,2,3,4]
+> for(var item of a){
+> 	console(item)
+> }
+> ```
+>
+> 对比python的for循环，默认for in 获取的就是元素。
+>
+> 为了获得索引，需要 for i,j in enumerate(list):
+
+### 50.python随机打乱列表顺序
+
+> 涉及到抽奖的流程，都可能需要这个操作。可以通过random模块的shuffle函数解决问题。
+>
+> ```python
+> import random
+> a = list(range(1,11))
+> random.shuffle(a)
+> print(a)
+> # [4,3,2,7,8,5,1,6,9,10]
+> ```
+
+### 51.python指定列表随机抽取指定长度的片段
+
+> 如果有一个长度为100的数组，如何从中随机抽取指定个数的子元素呢？如下代码可以实现
+>
+> ```python
+> import random
+> a = list(range(1,101))
+> b = random.sample(a,5)
+> print(b)
+> # [34,77,12,45,7]
+> ```
