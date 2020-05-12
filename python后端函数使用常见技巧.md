@@ -904,3 +904,13 @@ async def func_name(event, context):
 > print(b)
 > # [34,77,12,45,7]
 > ```
+
+### 52.js判断元素是否在一个数组中
+
+> 有时我们需要判断订单的状态确认是否能够继续下一步。也许我们实现预设的订单状态有6种，判断当前订单状态是否为这6种中的一种，可以通过如下方式。
+>
+> ```javascript
+> !['buy','tuan','join'].includes(state.buy_type)
+> ```
+>
+> 如果不是则返回false
