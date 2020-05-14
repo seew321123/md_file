@@ -914,3 +914,32 @@ async def func_name(event, context):
 > ```
 >
 > 如果不是则返回false
+
+### 53.js通过map函数判断字典列表
+
+> 有时我们需要对一个现有的字典列表，判断其中每一个元素的某一个属性是否符合条件。可以通过如下操作
+>
+> ```javascript
+> a = [id:1,name:"tom},{id:2,name:"jerry}]
+> b = a.map(i=>i.id)
+> console.log(b)
+> //[1,2]
+> if(b.includes(3)){
+>     console.log('yes')
+> }
+> else{
+>     console.log('no')
+> }
+> //'no'
+> ```
+>
+> 通过map函数能够获得一个现有列表对应的一个映射列表。
+
+### 54.批量操作判断是否全部成功
+
+> 拼团应用中，系统关闭成团失败的团，完成退款任务，此任务是一个批量任务。我们需要确定每一次的退款是否都成功。因此我们需要事先准备一个列表is_success_list,同时每次完成一个任务后都推送一个True或者False进入该列表。最后判断列表中的所有元素是否都为True,可以通过all()函数。
+>
+> ```python
+> all(is_success_list)
+> //都为True则返回True,否则返回False
+> ```
