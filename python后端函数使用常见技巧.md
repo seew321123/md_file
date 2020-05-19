@@ -943,3 +943,17 @@ async def func_name(event, context):
 > all(is_success_list)
 > //都为True则返回True,否则返回False
 > ```
+
+### 55.返回对象数组中符合条件的元素的索引
+
+> 前端有时需要实现某些对象数组中返回满足条件的元素的索引。之前接触过的find函数可以直接返回元素，现在的findIndex用法几乎一样，只是返回的内容是索引。
+>
+> ```javascript
+> a = [
+> 	{id:1.age:13},
+> 	{id:2.age:14},
+> 	{id:3.age:25}
+> ] 
+> b = a.findIndex((item)=>{return item.id==2})
+> ```
+
