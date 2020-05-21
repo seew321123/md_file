@@ -957,3 +957,25 @@ async def func_name(event, context):
 > b = a.findIndex((item)=>{return item.id==2})
 > ```
 
+### 56.判断数组中所有元素是否都符合某个条件
+
+> 通过js的every可以批量判断数组中所有元素是否都符合某个条件，如果都符合则返回true，否则返回false.
+>
+> ```javascript
+> a = [1,2,3,4,5]
+> a.every(item=>item>0)
+> //true
+> a.every(item=>item>1)
+> //false
+> ```
+
+### 57.js字典删除属性
+
+> 有时根据不同类型的方式创建订单，可能带有的参数各不相同。有的创建方式甚至没有相关的数据，但创建订单时或许会有系统自带的数据校验。因此需要判断创建类型删除数据的某个字段。如下即可
+>
+> ```javascript
+> a = {id:1,age:2}
+> delete a.age
+> console.log(a)
+> //{'id':1}
+> ```
