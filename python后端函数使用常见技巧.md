@@ -980,4 +980,52 @@ async def func_name(event, context):
 > //{'id':1}
 > ```
 
-test
+### 58.查询结果优雅处理为列表
+
+> 根据过滤条件获取到的repo通过async_values_list('data',flat=True)拿到字典列表数据后，希望在此基础上继续精简，将列表中的数据精确到你想要的那个字段。可以通过如下操作
+>
+> ```python
+> your_list = [i['your_data'] for i in value_list]
+> ```
+
+### 59.python根据条件赋值的优雅写法
+
+> 有时需要根据条件判断决定赋值内容。可以通过下面这种优雅的方式完成
+>
+> ```python
+> a = 5
+> b = 10
+> c = a if a > 9 else b
+> print(c)
+> //10
+> ```
+
+### 60.js数组快速求和（reduce）
+
+> 函数式编程，采用reduce解决问题。参考如下：
+>
+> ```javascript
+> var a = [1,2,3,4,5]
+> var b = a.reduce((pre,cur)=>pre+cur)
+> ```
+
+### 61.js判断数组中是否包含某个元素
+
+> 在python可以通过in来判断如下操作
+>
+> ```python
+> a = [1,2,3,4,5]
+> b = 2
+> b in a
+> # True
+> ```
+>
+> 在js中可以考虑通过some函数解决问题
+>
+> ```javascript
+> a = [1,2,3,4,5]
+> b = [2]
+> a.some((item)=>item==b)
+> //true
+> ```
+
